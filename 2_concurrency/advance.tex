@@ -1,0 +1,382 @@
+\documentclass[11pt, letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{kotex}
+\usepackage{polski}
+\usepackage[document]{ragged2e} % keep all left
+\usepackage[english]{babel}
+
+\usepackage{minted} % yaml syntax highlighting
+
+\newenvironment{markdown}%
+    {\VerbatimEnvironment\begin{VerbatimOut}{tmp.markdown}}%
+    {\end{VerbatimOut}%
+        \immediate\write18{pandoc tmp.markdown -t latex -o tmp.tex}%
+        \input{tmp.tex}}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\newcommand*{\email}[1]{\href{mailto:#1}{\nolinkurl{#1}} } 
+
+\title{1 day Golang Programming Workshop\\Advance Golang\\{ \small \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0} }  }
+\author{Wojciech Barczynski\\(wbarczynski.pro@gmail.com)}
+\date{}
+
+
+\begin{document}
+\selectlanguage{english}
+
+\begin{titlepage}
+\maketitle
+\end{titlepage}
+
+\tableofcontents
+\pagebreak
+\section{Prerequiments}
+
+\subsection{Audience}
+
+We design the workshop with the following assumptions about the audience:
+
+\begin{itemize}%
+\item Have 1-year experience in other programming language.%
+\item Understand the Golang basics
+\item Feel good with Command Line Interface.
+\end{itemize}%
+
+\subsection{Your workstation}
+
+\begin{itemize}%
+\item Linux or OSX recommended.%
+\item Basic: \begin{itemize}%
+    \item Golang
+    \item a configured IDE or editor
+    \item Git
+    \end{itemize}%
+\item {\small SQL} and no{\small SQL} exercise (recommended with docker):
+\begin{itemize}%
+    \item Postgres
+    \item MongoDB
+\end{itemize}
+\item Nice to have: \begin{itemize}%
+    \item Docker
+    \end{itemize}
+\end{itemize}
+
+Check \href{https://github.com/golang/go/wiki/IDEsAndTextEditorPlugins}{Go Wiki} to see how to configure your favorite editor to write golang programs.
+
+\bigskip
+\textbf{Notice:} No copy\&paste!
+\bigskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Goroutines Basics}
+
+\begin{markdown}
+Golang concurrency:
+
+- green threads (go routines)
+- can run hundreds of thousands routines
+- low overhead (dynamic stack)
+- channels for communication
+- scalable model
+- you cannot control them
+\end{markdown}
+
+Basic primitives:
+\begin{itemize}
+\item Spawning goroutine: \mintinline{go}{go myFunc()}
+\item Share memory by communicating with channels: \mintinline{go}{chan}
+\item Subcribe to multiple channels: \mintinline{go}{select}
+\item If you cannot use channel, you have also mutexes: \mintinline{go}{sync.Mutex}
+\item Coordinate multiple goroutines: \mintinline{go}{sync.WaitGroup}
+\end{itemize}
+
+%%
+\subsection{Goroutines}
+
+1. The first meeting with Goroutines:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "fmt"
+  "time"
+)
+
+func say(s string, num int) {
+  for i := 0; i < num; i++ {
+    time.Sleep(100 * time.Millisecond)
+    fmt.Println(s)
+  }
+}
+
+func main() {
+  go say("world", 5)
+  say("hello", 5)
+}
+\end{minted}
+
+\begin{itemize}
+\item What is the output?
+\item What is the output when change $5$ -> $10$ for saying \verb|world|.
+\end{itemize}
+
+\bigskip
+
+2. Channels:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import "fmt"
+
+func sum(s []int, c chan int) {
+  sum := 0
+  for _, v := range s {
+    sum += v
+  }
+  c <- sum // send sum to c
+}
+
+func main() {
+  s := []int{7, 2, 8, -9, 4, 0}
+
+  c := make(chan int)
+  go sum(s[:len(s)/2], c)
+  go sum(s[len(s)/2:], c)
+  x, y := <-c, <-c // receive from c
+
+  // uncomment me:
+  // <-c 
+  fmt.Println(x, y, x+y)
+}
+\end{minted}
+
+What does happen if you uncomment \mintinline{go}{<-c}?
+
+\bigskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Simple produce and consume}
+
+\begin{minted}[frame=single]{go}
+package main
+
+import "fmt"
+
+func produce(nums ...int) <-chan int {
+    out := make(chan int)
+    go func() {
+        for _, n := range nums {
+            out <- n
+        }
+        close(out)
+    }()
+    return out
+}
+
+func transform(in <-chan int) <-chan int {
+    out := make(chan int)
+    go func() {
+        for n := range in {
+            out <- n * n
+        }
+        close(out)
+    }()
+    return out
+}
+
+func main() {
+    // Set up the pipeline.
+    c := produce(2, 3)
+    out := transform(c)
+
+    // Consume the output.
+    fmt.Println(<-out) // 4
+    fmt.Println(<-out) // 9
+    
+    // 1: uncomment me, what does
+    //    happen?
+    // fmt.Println(<-out) 
+
+    // 2A: uncomment me
+    // close(out)
+
+    // 2B: change '<-chan' to 'chan'
+    //     in transoform function
+}
+\end{minted}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Channels Buffered and Unbuffered}
+
+Did you notice that the last program was synchronized?
+
+\begin{minted}[frame=single]{go}
+// unbuffered channel of integers
+ci := make(chan int)
+
+// unbuffered channel of integers
+cj := make(chan int, 0)
+
+// buffered channel of pointers to Files
+cs := make(chan *os.File, 100)
+\end{minted}
+
+Change the previous program to use the buffered channel.
+
+
+
+
+
+
+Based on the above examples, write a program that counts files in 2 directories. The first implementation should be sequential, the second - parallel.
+
+
+
+
+
+
+
+
+%%%
+\subsection{sync.Mutex}
+How would you implement a global counter with sync.Mutex?
+
+% https://tour.golang.org/concurrency/9
+\begin{minted}[frame=single]{go}
+
+type SafeCounter struct {
+  numberOfFiles  int
+  mux sync.Mutex
+}
+
+//c.mux.Lock()
+//c.mux.Unlock()
+\end{minted}
+
+\smallskip
+
+What are drawbacks of this solution?
+
+\smallskip
+
+Implement one counter with mutex and one with channel.
+
+\subsection{Further read}
+
+For more complex use cases:
+
+\begin{markdown}
+- https://blog.golang.org/pipelines
+- https://blog.golang.org/context
+\end{markdown}
+
+We will cover the Golang concurrency in the follow-up training.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bounding resource usage}
+
+Based on \href{go/wiki/BoundingResourceUse}{https://github.com/golang/go/wiki/BoundingResourceUse}:
+
+\begin{minted}[frame=single]{go}
+const (
+  AvailableMemory = 10 << 20 // 10 MB
+  AvgMemoryPerReq = 10 << 10 // 10 KB
+  MaxOutstanding  = AvailableMemory / AvgMemoryPerReq
+)
+
+var sem = make(chan int, MaxOutstanding)
+
+func Serve(queue chan *Request) {
+  for {
+    sem <- 1 // Block until there's capacity to process a request.
+    req := <-queue
+    go handle(req) // Don't wait for handle to finish.
+  }
+}
+
+func handle(r *Request) {
+  process(r) // May take a long time & use a lot of memory or CPU
+  <-sem      // Done; enable next request to run.
+}
+\end{minted}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Signals}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Context}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Http server with Graceful shutdown}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Defer, Panic, and Recover}
+
+There is a way to recover from the panic, when we use \verb|defer|, \verb|panic|, and \verb|recover|. We are not going to cover it in the introduction course.
+
+If you cannot wait, check \href{https://blog.golang.org/defer-panic-and-recover}{a defer-panic-and-recover blog post on golang.org} and \href{https://github.com/golang/go/wiki/PanicAndRecover}{the golang wiki PanicAndRecover article}.
+
+%%%%%%%%%%%%%%%%%%
+\section{Goroutines and Tests}
+
+Create a simple test in a file -- \verb|main_test.go|. To run tests: \verb|go test .|.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Observability}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Metrics}
+
+Check the brilliant blog on \href{https://peter.bourgon.org/go-for-industrial-programming/}{Go for Industrial Programming} and \href{https://www.youtube.com/watch?v=PTE4VJIdHPg}{the corresponding video}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Logging}
+
+Most popular: \verb|log|, \verb|sirupsen/logrus|, and, for those who want to save every CPU cycle - \verb|uber-go/zap|.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Tracing}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Profiling}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Benchmarks}
+
+https://github.com/golang/go/wiki/Performance
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Docs}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Tools}
+
+\subsection{Metalinters}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{References}
+
+\begin{markdown}
+- https://github.com/golang/go/wiki/CodeReviewComments
+- https://golang.com/doc/effective_go.html
+\end{markdown}
+
+\end{document}
