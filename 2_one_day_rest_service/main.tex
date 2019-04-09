@@ -1,0 +1,970 @@
+\documentclass[11pt, letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{kotex}
+\usepackage{polski}
+\usepackage[document]{ragged2e} % keep all left
+\usepackage[english]{babel}
+
+\usepackage{minted} % yaml syntax highlighting
+
+\newenvironment{markdown}%
+    {\VerbatimEnvironment\begin{VerbatimOut}{tmp.markdown}}%
+    {\end{VerbatimOut}%
+        \immediate\write18{pandoc tmp.markdown -t latex -o tmp.tex}%
+        \input{tmp.tex}}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\newcommand*{\email}[1]{\href{mailto:#1}{\nolinkurl{#1}} } 
+
+\title{0.5 day Golang Programming Workshop\\{\small REST} service\\{ \small \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0} }  }
+\author{Wojciech Barczynski\\(wbarczynski.pro@gmail.com)}
+\date{}
+
+
+\begin{document}
+\selectlanguage{english}
+
+\begin{titlepage}
+\maketitle
+\end{titlepage}
+
+\tableofcontents
+\pagebreak
+\section{Prerequiments}
+
+\subsection{Audience}
+
+We design the workshop with the following assumptions about the audience:
+
+\begin{itemize}%
+\item Have 1-year experience in other programming language.%
+\item Feel good with Command Line Interface.
+\item Knows how to work with go mod.
+\end{itemize}%
+
+\subsection{Your workstation}
+
+\begin{itemize}%
+\item Linux or OSX recommended.%
+\item Basic: \begin{itemize}%
+    \item Golang
+    \item a configured IDE or editor
+    \item Git
+    \end{itemize}%
+\item Package manager exercise:
+\begin{itemize}%
+    \item godep
+    \end{itemize}
+\item {\small SQL} and no{\small SQL} exercise (recommended with docker):
+\begin{itemize}%
+    \item Postgres
+    \item MongoDB
+\end{itemize}
+\end{itemize}
+
+\bigskip
+\textbf{Notice:} No copy\&paste, please.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\section{Your basic web app}
+
+Our first webapp. btw. What is a 12 factor app?\footnote{\href{https://12factor.net/}{https://12factor.net/}}
+
+\subsection{Simplest}
+
+Writing a web server in Golang, thanks to a very solid standard library, is fairly simple:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "io"
+  "log"
+  "net/http"
+)
+
+func main() {
+  hello := func(w http.ResponseWriter, r *http.Request) {
+    io.WriteString(w, "Hello World!")
+  }
+
+  // Run http server on port 8080
+  err := http.ListenAndServe(":8080", http.HandlerFunc(hello))
+
+  // Log and die, in case something go wrong
+  log.Fatal(err)
+}
+\end{minted}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Multiplexed}
+
+To multiplex, we need to create a Multiplexer:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+    "io"
+    "log"
+    "net/http"
+)
+
+func main() {
+  mux := http.NewServeMux()
+
+  mux.HandleFunc("/hello", func(w http.ResponseWriter,
+      r *http.Request) {
+    io.WriteString(w, "Hello")
+  })
+  
+  mux.HandleFunc("/world", func(w http.ResponseWriter,
+      r *http.Request) {
+    io.WriteString(w, "World")
+  })
+
+  log.Fatal(http.ListenAndServe(":8080", mux))
+}
+\end{minted}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Handler as a struct}
+
+To customize handler, we can create a \verb|struct|
+
+\begin{minted}[frame=single]{go}
+type MyHandler struct {
+  Greeting string
+}
+
+func (h *MyHandler) ServeHTTP(w http.ResponseWriter,
+    r *http.Request) {
+  fmt.Fprintf(w, "%s, %s!", h.Greeting, r.RemoteAddr)
+}
+
+func main() {
+  log.Fatal(http.ListenAndServe(":8080", &MyHandler{
+    Greeting: "Hello World!",
+  }))
+}
+\end{minted}
+
+%%%%%
+\subsection{Sharing data structures among handlers}
+
+The following example shows how to share data among handlers, e.g., database connection details, configs:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "fmt"
+  "log"
+  "net/http"
+)
+
+type App struct {
+  ServiceName string
+  // Datasource
+  // logging config
+}
+
+func (app *App) HelloWorld(w http.ResponseWriter,
+    r *http.Request) {
+  w.WriteHeader(http.StatusOK)
+  fmt.Fprintf(w, "Hello World from " + app.ServiceName)
+}
+
+func main() {
+  app := App{ServiceName: "MyApp"}
+  mux := http.NewServeMux()
+  mux.HandleFunc("/", app.HelloWorld)
+
+  log.Fatal(http.ListenAndServe(":8080", mux))
+}
+\end{minted}
+
+\subsection{Reading body}
+
+Extend the previous example to read the data passed with http body:
+
+\begin{minted}[frame=single]{go}
+func (h *Handler) ServeHTTP(w http.ResponseWriter,
+      r *http.Request) {
+  var data bytes.Buffer // []byte with IO
+  
+  // body, err := ioutil.ReadAll(r.Body)
+  n, err := data.ReadFrom(r.Body) // read body to the buffer
+  if err != nil {  
+    panic(err) 
+  }
+
+  log.Printf("Got %d bytes from %s: %s\n", n, r.RemoteAddr,
+    data.String())
+}
+\end{minted}
+
+Test it:
+
+\begin{minted}{text}
+$ curl -d '{"name": "natalia"}' 127.0.0.1:8080 
+\end{minted}
+
+%%%%%
+\subsection{Parse {\small URL}}
+
+We have also support for parsing {\small URL} in \href{https://golang.org/pkg/net/url/}{net/url Package}:
+
+\begin{minted}[frame=single]{go}
+// "lang=pl"
+q := r.URL.Query()
+lang := q.Get("lang")
+\end{minted}
+
+%%
+\subsection{Simple hello-world}
+
+Let's make create a hello-world app with fixed dictionary of hello-world in different languages:
+
+\begin{itemize}
+\item \verb|pl|: dzień dobry, dobry wieczor
+\item \verb|en|: hi, welcome
+\item \verb|de|: guten tag
+\end{itemize}
+
+Spec:
+\begin{itemize}
+\item Get hello-world, when \emph{lang} and \emph{user} come as a {\small GET} param 
+\item if \emph{lang} is missing, return 400.
+\item if \emph{user} is missing, return 404.
+\end{itemize}
+
+\subsection{Testing handlers}
+
+Create tests to cover the edge cases, use the following code for the start:
+
+\begin{minted}[frame=single]{go}
+func TestHandlers(t *testing.T) {
+  // Your handler to test
+  handler := func(w http.ResponseWriter, r *http.Request) {
+    http.Error(w, "Uh huh", http.StatusBadRequest)
+  }
+
+  // Create a request
+  r, err := http.NewRequest("GET",
+    "http://test.com?lang=pl&user=wojtek", nil)
+
+  // Handle request and store result in w
+  w := httptest.NewRecorder()
+  handler(w, r)
+
+  // Check out
+  if w.Code != http.StatusOK {
+    t.Fatal(w.Code, w.Body.String())
+  }
+}
+\end{minted}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Prerequisites}
+
+\subsection{Environment variables}
+
+Our application should get the configuration throught environments variables:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "fmt"
+  "os"
+)
+
+func main() {
+  envValue, found := os.LookupEnv("LISTEN_PORT")
+  if ! found {
+    envValue = "8080"
+  }
+  fmt.Printf(envValue)
+}
+\end{minted}
+\bigskip
+Check also libraries, e.g.,\\ \href{https://github.com/jessevdk/go-flags}{github.com/jessevdk/go-flags}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Working with {\small JSON}}
+
+Let's give a user to add new hello messages, e.g.:
+
+\begin{minted}[frame=single]{json}
+{
+  "value": "Hi",
+  "lang": "en"
+}
+\end{minted}
+
+To learn how to use marshalling and unmarshalling, let's write a simple program that uses \href{https://golang.org/pkg/encoding/json/}{encoding/json package}:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "encoding/json"
+  "fmt"
+)
+
+type Employee struct {
+  FistName    string `json:"name"`
+  LastName    string
+  Internal    string `json:"-"`
+  Mandatory   int    `json:"mandatory"`
+  Zero        int    `json:"zero,omitempty"`
+  iDoNotSeeIt int    `json:"notSeen"`
+}
+
+func main() {
+  input := `{
+    "name": "natalia",
+    "lastName": "Buss"
+  }`
+
+  var empl Employee
+  err := json.Unmarshal([]byte(input), &empl)
+  if err != nil {
+    // ...
+    return
+  }
+  fmt.Println(empl.FistName)
+  fmt.Println(empl.LastName)
+
+  empl.Mandatory = 0
+  empl.Zero = 0
+
+  out, _ := json.Marshal(empl)
+  fmt.Println(string(out))
+}
+\end{minted}
+
+Notice: you can build your custom Marshaller/Unmarsheller. \verb|json| supports all data types.
+
+\bigskip
+
+Find out what \verb|json.RawMessage| is? What is a use case for it?
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{{\small REST}, {\small JSON}, and composition}
+
+You can use composition to reuse common structures:
+
+\begin{minted}[frame=single]{go}
+type Meta struct {
+  MasterdataId string `json:"mdId"`
+}
+
+func GetName(data bytes.Buffer) {
+  // private type
+  type person struct {
+    Name string `json:name`
+    Meta
+  }
+
+  var p person
+  err = json.Unmarshal(data.Bytes(), &p)
+}
+\end{minted}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Level up web app}
+
+\subsection{Support {\small POST} and {\small GET} with gorilla/mux}
+
+If you want to build more complex web server, you should check \href{https://github.com/gorilla/mux}{gorilla/mux}:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "fmt"
+  "log"
+  "net/http"
+  "github.com/gorilla/mux"
+)
+
+func HelloGetHandler(w http.ResponseWriter, r *http.Request) {
+  w.WriteHeader(http.StatusOK)
+  fmt.Fprintf(w, "GET")
+}
+
+func AddMsgHandler(w http.ResponseWriter, r *http.Request) {
+  w.WriteHeader(http.StatusOK)
+  fmt.Fprintf(w, "Post")
+}
+
+func main() {
+  r := mux.NewRouter()
+  r.HandleFunc("/", HelloGetHandler).Methods("GET")
+  r.HandleFunc("/", AddMsgHandler).Methods("POST")
+
+  log.Fatal(http.ListenAndServe(":8080", r))
+}
+\end{minted}
+
+Refactor your application to use \verb|gorilla/mux|.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Web app with memory storage}
+
+Build the following application, so we can add, display, and remove hello messages:
+
+\begin{markdown}
+- \verb|/hello_msg|, \verb|POST| - add new hello message
+- \verb|/say_hello?user=natalia&lang=en|, \verb|GET| - say hello
+- \verb|/hello_msg|, \verb|GET| - list all messages
+- \verb|/hello_msg/{id}|, \verb|DELETE| - remove hello message
+\end{markdown}
+
+Start as a simple array, later we can build it as a map.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{ReadTimeout and WriteTimeout for http.Server}
+Remember that all IO operations should be cancel-able or timeout-able:
+
+\begin{minted}[frame=single]{go}
+srv := &http.Server{
+  Addr: "8080",
+  Handler: h,
+  ReadTimeout: 2s,
+  WriteTimeout:2s,
+  MaxHeaderBytes: 1 << 20,
+}
+
+srv.ListenAndServe()
+\end{minted}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\section{Calling remote web {\small API}}
+
+\begin{minted}{go}
+package main
+
+import (
+  "log"
+  "net/http"
+  "time"
+)
+
+func main() {
+  c := &http.Client{
+    Timeout: 2 * time.Second,
+  }
+
+  log.Println("Fetching...")
+  resp, err := c.Get(
+    "https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json")
+
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer resp.Body.Close()
+}
+\end{minted}
+
+Your task is to parse the output. While looking for the best way to parse it, use your writing-tests skills,
+so you do not {\small DD}o{\small S} \emph{mdn.github.io}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Build Hero {\small API} Client}
+
+Refactor the previous application and extract fetching list of heros to a \verb|HeroClient|:
+
+\begin{minted}[frame=single]{go}
+type HeroClient struct {
+  Client *http.Client
+}
+
+func (c *HeroClient) GetThem() (string, error) {
+  // your code
+}
+
+func main() {
+  c := &http.Client{
+    Timeout: 2 * time.Second,
+  }
+
+  hc := HeroClient{Client: c}
+  
+  // your code to read and display 
+  // superheroes JSON
+}
+\end{minted}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Testing Calling remote {\small API}s}
+
+You can also test whether your calls have proper format by using \mintinline{go}{httptest}:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "fmt"
+  "net/http"
+  "net/http/httptest"
+  "testing"
+
+  "gotest.tools/assert"
+)
+
+func TestHeroClientAPI(t *testing.T) {
+
+  server := httptest.NewServer(
+    http.HandlerFunc(
+      func(rw http.ResponseWriter, req *http.Request) {
+        // Send response to be tested
+        assert.Equal(t, req.URL.String(), "/some/path") 
+        rw.Write([]byte(`OK`))
+      }),
+  )
+
+  // Close the server when test finishes
+  defer server.Close()
+  // Use Client & URL from our local test server
+  api := HeroClient{server.Client()}
+  r, err := api.GetThem()
+  assert.NilError(t, err)
+  fmt.Println(r)
+}
+\end{minted}
+
+Please refactor your code from previous exercise, add GET argument, and~write the test.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Database Access}
+What a {\small REST} service is without a database, let's do it.
+
+\subsection{Postgres}
+
+Package \verb|database/sql| provides generic interface for {\small SQL} databases. In our exe
+
+\bigskip
+1. Prepare the project
+
+\begin{minted}{text}
+# anywhere 
+$ mkdir workshop-db
+$ go mod init github.com/wojciech12/workshop-db
+$ go get github.com/lib/pq
+$ go get github.com/jmoiron/sqlx
+\end{minted}
+
+\bigskip
+2. Run psql:
+
+\begin{minted}{text}
+# user: postgres
+$ docker run --rm \
+  --name workshop-psql \
+  -e POSTGRES_DB=hello_world \
+  -e POSTGRES_PASSWORD=nomoresecret \
+  -d \
+  -p 5432:5432 \
+  postgres
+\end{minted}
+
+Notice:
+
+\begin{minted}{text}
+$ psql hello_world postgres -h 127.0.0.1 -p 5432
+\end{minted}
+
+\bigskip
+3. Connect to db:
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "database/sql"
+  "fmt"
+  "net/url"
+
+  _ "github.com/lib/pq"
+)
+
+var driverName = "postgres"
+
+func New(connectionInfo string) (*sql.DB, error) {
+  db, err := sql.Open(driverName, connectionInfo)
+  if err != nil {
+    msg := fmt.Sprintf("cannot open db (%s) connection: %v", 
+      driverName, err)
+    println(msg)
+    return nil, err
+  }
+  return db, nil
+}
+
+func main() {
+  user := url.PathEscape("postgres")
+  password := url.PathEscape("nomoresecret")
+  host := "127.0.0.1"
+  port := "5432"
+  dbName := "hello_world"
+  sslMode := "disable"
+
+  connInfo := fmt.Sprintf(
+    "postgres://%s:%s@%s:%s/%s?sslmode=%s",
+    user, password, host, port, dbName, sslMode)
+
+  sql, err := New(connInfo)
+  if err != nil {
+    panic(err)
+  }
+  err = sql.Ping()
+  if err != nil {
+    panic(err)
+  }
+  defer sql.Close()
+}
+\end{minted}
+
+\bigskip
+4. Let's create tables using the following definition:
+
+\begin{minted}[frame=single]{go}
+CREATE TABLE users (
+  id BIGSERIAL PRIMARY KEY,
+  first_name TEXT,
+  last_name TEXT);
+\end{minted}
+
+\bigskip
+5. Create table in Golang:
+
+\begin{minted}[frame=single]{go}
+func createTableIfNotExist(sql *sql.DB) {
+  _, err := sql.Exec(`CREATE TABLE users (
+    id  BIGSERIAL PRIMARY KEY,
+    first_name TEXT,
+    last_name TEXT)`)
+  fmt.Printf("%v\n", err)
+}
+\end{minted}
+
+\bigskip
+6. Add lines:
+
+\begin{minted}[frame=single]{go}
+func insertData(sql *sql.DB, firstName string,
+    lastName string) error {
+  iq := `INSERT INTO users (first_name, last_name)
+         VALUES ($1,$2) RETURNING id;`
+  stmt, err := sql.Prepare(iq)
+  if err != nil {
+    return err
+  }
+  defer stmt.Close()
+  _, err = stmt.Exec(firstName, lastName)
+  if err != nil {
+    return err
+  }
+  return nil
+}
+\end{minted}
+
+
+\bigskip
+6. Read lines:
+
+\begin{minted}[frame=single]{go}
+func readData(sql *sql.DB) error {
+  s := `SELECT id, first_name, last_name FROM users`
+  rows, err := sql.Query(s)
+  if err != nil {
+    return err
+  }
+  defer rows.Close()
+
+  type person struct {
+    ID         int
+    FirstName  string
+    SecondName string
+  }
+
+  var p person
+  for rows.Next() {
+    if err := rows.Scan(
+      &p.ID,
+      &p.FirstName,
+      &p.SecondName); err != nil {
+      return err
+    }
+    fmt.Printf("%d %s %s", p.ID, p.FirstName, p.SecondName)
+  }
+  return nil
+\end{minted}
+
+\bigskip
+7. With sqlx\footnote{\href{https://github.com/jmoiron/sqlx}{https://github.com/jmoiron/sqlx}}, you can have more declarative code for working with your database:
+
+\begin{minted}[frame=single]{go}
+dbx := sqlx.NewDb(sql, driverName)
+\end{minted}
+
+\begin{minted}[frame=single]{go}
+func insertData2(sql *sqlx.DB, firstName string,
+  lastName string) error {
+  type input struct {
+    FirstName string `db:"first_name"`
+    LastName  string `db:"last_name"`
+  }
+  type output struct {
+    ID int64 `db:"id"`
+  }
+
+  var out output
+  var in input
+
+  in.FirstName = firstName
+  in.LastName = lastName
+
+  sqlQuery := `INSERT INTO users ( first_name,
+            last_name
+           ) VALUES (
+         :first_name,
+         :last_name) RETURNING id`
+
+  stmt, err := sql.PrepareNamed(sqlQuery)
+  if err != nil {
+    return err
+  }
+  err = stmt.Get(&out, in)
+  if err != nil {
+    return err
+  }
+  fmt.Println(out.ID)
+  return nil
+}
+\end{minted}
+
+Notice: for select queries, you use \verb|Queryx| and \verb|err := rows.StructScan(&out)|.
+
+\bigskip
+
+%%%
+8. Add support for the database in your web app.
+
+%%
+\subsection{Migrations}
+
+Presentation of golang-migrate/migrate\footnote{\href{https://github.com/golang-migrate/migrate}{https://github.com/golang-migrate/migrate}}.
+
+%%
+\subsection{Testing your database integration}
+
+In the Golang community, we test against real databases if we can. The best practice is to use build tags to distinguish integration tests:
+
+\begin{minted}[frame=single]{go}
+// +build integration
+
+package service_test
+
+func TestSomething(t *testing.T) {
+  if service.IsMeaningful() != 42 {
+    t.Errorf("oh no!")
+  }
+}
+\end{minted}
+
+To run:
+
+\begin{minted}{text}
+$ go test --tags integration ./...
+\end{minted}
+
+%%
+\subsection{Mongodb}
+
+A homework, prepare an application that uses mongodb as its database:
+
+Database:
+
+\begin{minted}{text}
+$ docker run  -p 27017:27017 \
+  --name da-mongo \
+   -d \ 
+   mongo
+\end{minted}
+
+
+Let's setup our project:
+
+\begin{minted}{text}
+# anywhere 
+$ mkdir workshop-mgo
+$ go get github.com/globalsign/mgo
+\end{minted}
+
+%%
+\section{Best practises}
+
+\bigskip
+1. Dependencies Injection, without the magic:
+
+\begin{minted}[frame=single]{go}
+func main() {  
+    cfg := GetConfig()
+    db, err := ConnectDatabase(cfg.URN)
+    if err != nil {
+        panic(err)
+    }
+    repo := NewProductRepository(db)
+    service := NewProductService(cfg.AccessToken, repo)
+    server := NewServer(cfg.ListenAddr, service)
+    server.Run()
+}
+\end{minted}
+
+\bigskip
+2. Dependencies direction from supporting pkgs to business logic pkgs.
+
+\bigskip
+3. \verb|Context| 
+
+%%
+\section{Observability}
+
+\subsection{Monitoring with Prometheus}
+
+See \href{https://github.com/wojciech12/talk_monitoring_with_prometheus}{https://github.com/wojciech12/talk\_monitoring\_with\_prometheus}
+
+%%
+\subsection{Logging with Logrus}
+
+Example for a talk on logging\footnote{\href{https://github.com/wojciech12/talk_observability_logging}{https://github.com/wojciech12/talk\_observability\_logging}}
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+  "fmt"
+  "net/http"
+
+  "github.com/gorilla/mux"
+   log "github.com/sirupsen/logrus"
+)
+
+func HelloHandler(w http.ResponseWriter, r *http.Request) {
+  w.WriteHeader(http.StatusOK)
+  fmt.Fprintf(w, "Hello!")
+
+  log.WithFields(log.Fields{
+      "method": r.Method,
+      "handler": "hello",
+  }).Info("hello!")
+}
+
+func WorldHandler(w http.ResponseWriter, r *http.Request) {
+  w.WriteHeader(http.StatusOK)
+  fmt.Fprintf(w, "World!")
+
+  log.WithFields(log.Fields{
+      "method": r.Method,
+      "handler": "world",
+   }).Info("world!")
+}
+
+func ErrorHandler(w http.ResponseWriter, r *http.Request) {
+  w.WriteHeader(http.StatusOK)
+  fmt.Fprintf(w, "Bye!")
+
+  log.WithFields(log.Fields{
+    "method": r.Method,
+    "handler": "error",
+  }).Error("What does 'bye' mean?!")
+}
+
+func main() {
+
+  log.SetFormatter(&log.JSONFormatter{})
+
+  r := mux.NewRouter()
+  r.HandleFunc("/hello", HelloHandler)
+  r.HandleFunc("/world", WorldHandler)
+  r.HandleFunc("/error", ErrorHandler)
+  http.ListenAndServe(":8080", r)
+}
+\end{minted}
+
+See also \href{https://martinfowler.com/articles/domain-oriented-observability.html}{https://martinfowler.com/articles/domain-oriented-observability.html} for a discussion on how and what to monitor.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagebreak
+\section{Tools}
+
+%%
+\subsection{goreleaser}
+
+A very sharp tool that greatly simplifies your CI/CD pipeline for Golang apps.
+
+\begin{minted}{yaml}
+project_name: myapp
+release:
+  github:
+    owner: YOUR_USER_OR_ORG
+    name: myapp
+  name_template: '{{.Tag}}'
+builds:
+- env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  goarch:
+  - amd64
+  main: .
+  ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} \
+    -X main.date={{.Date}}
+  binary: myapp
+archive:
+  format: tar.gz
+  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm
+    }}v{{ .Arm }}{{ end }}'
+snapshot:
+  name_template: snapshot-{{.ShortCommit}}
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+dist: dist
+dockers:
+  - image: YOUR_USER_OR_ORG/myapp
+\end{minted}
+
+%%%
+\subsection{Docker}
+
+\begin{itemize}
+\item Compile on your machine:\\ \verb| GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build ./...| \\ and put just binary inside the Docker
+\item An alternative is to use \href{https://docs.docker.com/develop/develop-images/multistage-build/}{multi-stage Docker builds}
+\item Final image \verb|alpine| or \verb|ubuntu|
+\end{itemize}
+
+%%%
+\subsection{Performance tests}
+
+My favorite tool:
+
+\begin{itemize}
+  \item wrk\footnote{\href{https://github.com/wg/wrk}{https://github.com/wg/wrk}}
+  \item wrk2\footnote{\href{https://github.com/giltene/wrk2}{https://github.com/giltene/wrk2}} with \verb|lua| scripting
+\end{itemize}
+
+\end{document}
