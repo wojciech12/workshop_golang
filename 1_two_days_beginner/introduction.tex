@@ -22,7 +22,7 @@
 
 \newcommand*{\email}[1]{\href{mailto:#1}{\nolinkurl{#1}} } 
 
-\title{2 days Golang Programming Workshop\\CloudNative Week\\{ \small \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0} }  }
+\title{Golang Programming Workshop\\CloudNativeWarsaw\\{ \small \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0} }  }
 \author{Wojciech Barczynski\\(wbarczynski.pro@gmail.com)}
 \date{}
 
@@ -56,10 +56,6 @@ We design the workshop with the following assumptions about the audience:
     \item a configured IDE or editor
     \item Git
     \end{itemize}%
-\item Package manager exercise:
-\begin{itemize}%
-    \item godep
-    \end{itemize}
 \item {\small SQL} and no{\small SQL} exercise (recommended with docker):
 \begin{itemize}%
     \item Postgres
@@ -68,6 +64,10 @@ We design the workshop with the following assumptions about the audience:
 \item Nice to have: \begin{itemize}%
     \item Docker
     \end{itemize}
+\item Package manager exercise (optional):
+\begin{itemize}%
+    \item godep
+\end{itemize}  
 \end{itemize}
 
 Check \href{https://github.com/golang/go/wiki/IDEsAndTextEditorPlugins}{Go Wiki} to see how to configure your favorite editor to write golang programs.
@@ -80,29 +80,14 @@ Let's run a hello world to check whether you can run go applications on your wor
 \textbf{Notice:} No copy\&paste, please.
 
 \bigskip
-1. Let's check the (in)famous GOPATH:
+1. Create simple program.
 
 \begin{verbatim}
+$ mkdir hello_world
+$ cd hello_world
 
-$ printenv | grep GOPATH
-GOPATH=/Users/wb/workspace2/goprojects
-\end{verbatim}
-
-\bigskip
-2. Create a simple go program
-
-\begin{verbatim}
-$ mkdir -p $GOPATH/src/workshop-check
-\end{verbatim}
-
-\begin{verbatim}
-$ cd $GOPATH/src/workshop-check
-$ touch main.go
-\end{verbatim}
-
-\begin{verbatim}
-$ cd $GOPATH/src/workshop-check
-$ vim main.go
+$ go mod init
+$ go mod init workshop-check
 \end{verbatim}
 
 The main.go should have the following text:
@@ -132,12 +117,16 @@ $ go build .
 $ ls
 main.go  workshop-check
 
-$ ./main.go
+$ ./workshop-check
 \end{verbatim}
 
 Imagine for a second, we want to have it as a tool in our PATH: 
 
 \begin{verbatim}
+# what is GOPATH and GOBIN?
+$ export GOPATH=
+$ export GOBIN=
+
 # install
 $ go install
 
@@ -150,6 +139,31 @@ $ cd
 # run it
 $ workshop-check
 \end{verbatim}
+
+\subsubsection{How it is with {\small GOPATH}}
+More about (in)famous {\small GOPATH}, it is going slowly away.
+
+1. Let's check the (in)famous {\small GOPATH}:
+
+\begin{verbatim}
+
+$ printenv | grep GOPATH
+GOPATH=/Users/wb/workspace2/goprojects
+\end{verbatim}
+
+\bigskip
+2. Create a simple go program
+
+\begin{verbatim}
+$ mkdir -p $GOPATH/src/workshop-check
+\end{verbatim}
+
+\begin{verbatim}
+$ cd $GOPATH/src/workshop-check
+$ touch main.go
+\end{verbatim}
+
+From here you could follow the steps from the previous section.
 
 %%%
 \subsection{Golang Playground}
@@ -167,7 +181,7 @@ Notice: you can generate a link to your code sample.
 
 \subsection{Variable definition}
 \bigskip
-0. Create new directory in your \verb|$GOPATH|: \verb|hello-worlder|. Copy the \verb|main.go| from our \verb|workspace-check| project.
+0. Create new program \verb|hello-worlder|. Copy the \verb|main.go| from our \verb|workspace-check| project.
 
 \bigskip
 1. Please extract your name as a variable, use the following definitions and mark the incorrect ones:
@@ -207,6 +221,8 @@ var (
   y = 20
 )
 \end{minted}
+
+and print it on the screen.
 
 %%
 \subsection{Integers and Floats}
@@ -315,6 +331,8 @@ arr1 := [...]string{"pa", "rr", "ot"}
 slice1 := []string{"pa", "na", "ma"}
 slice2 := arr1[:]
 \end{minted}
+
+Notice: \mintinline{go}{relect.TypeOf(arr1)} vs \mintinline{go}{relect.TypeOf(slice1)}. Good to know when reading compilation errors or runtime panics.
 
 \bigskip
 2. What is the output?
@@ -442,7 +460,46 @@ copy(newSlice, slice)
 \end{minted}
 
 \bigskip
-8. Note, when a function returns no result, use a \emph{nil slice}:\\ \mintinline{go}{var nilSlice []string = nil}.
+8. Note, when a function returns no result, use a \emph{nil slice}:\\ \mintinline{go}{var nilSlice []string} \\ What does \mintinline{go}{fmt.Println(nilSlice==nil)} prints?
+
+\bigskip
+9. and the code below:
+\begin{minted}[frame=single]{go}
+var nilSlice []string
+
+var i *int = nil
+fmt.Println(i==nil)
+\end{minted}
+
+ok.. let's add this line:
+
+\begin{minted}[frame=single]{go}
+fmt.Println(nilSlice==i)
+\end{minted}
+
+[Homework] read \href{https://golang.org/doc/faq#nil_error}{golang.org {\small FAQ} entry on nill errors} and \href{https://dave.cheney.net/2017/08/09/typed-nils-in-go-2}{Dave Cheney blog post}.
+
+% package main
+
+% import "fmt"
+% import "net"
+
+% func g() error {
+%   var e net.Error = nil
+%   return e
+% }
+
+% func k() error {
+%   var e *net.AddrError = nil
+%   return e
+% }
+
+%  func main() {
+
+%   e1 := g()
+%   e2 := k()
+%   fmt.Print(e1 == e2)
+% }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Control structure: Loops}
@@ -510,6 +567,8 @@ const milk = "우유"
       milk[i], i)
   }
 \end{minted}
+
+Now let's mix things up: \mintinline{go}{const mixed = "wöjtk유wx"}.
 
 \bigskip
 Notice: Important packages are \verb|Package strings| and \verb|Package unicode/utf8|.
@@ -614,7 +673,7 @@ You can use this declarative style to define even the most complex JSON structur
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{User defined type}
 
-A short exercise to show you the types you can define over the basic and~composite types:
+You can define types over the basic and~composite types:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Type Definitions}
@@ -661,32 +720,21 @@ func main() {
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{fmt.Printf}
 
-Check the \href{golangbyexample}{https://gobyexample.com/string-formatting}.
+Check the \href{https://gobyexample.com/string-formatting}{https://gobyexample.com/string-formatting}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Functions}
 
-Let's split our program into nice functions:
-
-\bigskip
-1. Let's move the logic for displaying the hello message to a separate function:
+1. Let's move the logic for displaying the hello message to and function. We will return  \verb|false| if we do not support a given language:
 
 \begin{minted}[frame=single]{go}
-  helloMsgs := map[string]string{
+func displayHello(lang string) (bool) {
+    helloMsgs := map[string]string{
     "pl": "Dzień Dobry",
     "en": "Good morning",
-  }
-\end{minted}
-
-The function should take as arguments the map with messages and language.
-
-\bigskip
-2. Let's add return \verb|true| if we have a message for given language and \verb|false| if not. Notice:
-
-\begin{minted}[frame=single]{go}
-func displayHello() (found bool) {
-  // notice empty return
-  return
+    }
+    // here code
+    return false
 }
 \end{minted}
 
@@ -694,8 +742,10 @@ func displayHello() (found bool) {
 2. Let's follow the golang way and return an error:
 
 \begin{minted}[frame=single]{go}
-func displayHello() (err error) {
+func displayHello(lang string) (err error) {
+  // put code here
   err = fmt.Errorf("Unsupported language")
+  // .. and here
   return
 }
 
@@ -705,12 +755,31 @@ func main() {
     fmt.Printf("Not found!!! %v", err)
     return
   }
-
 }
 \end{minted}
 
 \bigskip
-3. Functions are first class citizens in Golang and we often use them as arguments:
+3. Functions are the first class citizens in Golang and we often use them as arguments. Let's write new program:
+
+\begin{minted}[frame=single]{go}
+func printThings(msg []string, decorator func(string) string) {
+  for _, l := range msg {
+    d := decorator(l)
+    fmt.Println(d)
+  }
+}
+
+func main() {
+  things := []string{"mleko", "cars", "programming"}
+
+  likeThat := func(s string) string {
+    return "Ania likes " + s
+  }
+  printThings(alphabet, likeThat)
+}
+\end{minted}
+
+Now something more complicated:
 
 \begin{minted}[frame=single]{go}
 type letterDecorator func(string) string
@@ -729,7 +798,6 @@ func main() {
   printLetters(alphabet, func(s string) string {
     return strings.ToUpper(s)
   })
-
   printLetters(alphabet, func(s string) string {
     return "::" + strings.ToLower(s) + "::"
   })
@@ -825,14 +893,14 @@ func main() {
   fmt.Println("Write was successful!")
 
   outData, err := ioutil.ReadFile(fPath)
-  if err != err {
+  if err != nil {
      panic(err) // failfast
   }
   fmt.Print(string(outData))
 }
 \end{minted}
 
-If it works, change \mintinline{go}{fPath} to \mintinline{go}{fPath := "/tmp/dat1"}. What does happen?
+If it works, change \mintinline{go}{ioutil.ReadFile(fPath)} to \mintinline{go}{ioutil.ReadFile(fPath + "x")}. What does happen?
 
 %%%%%%%%%%%%%%%
 \subsection{Pointers}
@@ -872,7 +940,7 @@ func main() {
 }
 \end{minted}
 
-Notice, we can return in functions pointers to local variables: \mintinline{go}{func Answer() *int}.
+\textbf{Notice}, we can return in functions pointers to local variables: \mintinline{go}{func Answer() *int}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Structures}
@@ -1066,29 +1134,59 @@ func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *Request) {
 }
 \end{minted}
 
-we could use it to customize our employees leave policies:
+Let's see it on an example:
 
 \begin{minted}[frame=single]{go}
 package employee
 
-type LeaveHandler func(taken int, total int) bool
+// employee package
+type PolicyHandler func(employee *Employee) bool
 
-func NewLeaveHandler(f func(int, int) bool) LeaveHandler {
-  return f
+func (f PolicyHandler) canTakeHolidays(empl *Employee) bool {
+  return f(empl)
 }
 
-func (f LeaveHandler) CanTakeHollidays(empl Employee) bool {
-  r := f(empl.totalLeaves, empl.leavesTaken)
-  return r
+func (f PolicyHandler) HolidayFreeze() bool {
+  return true
+}
+
+type Employee struct {
+  totalLeaves int
+  leavesTaken int
+  PolicyHandler PolicyHandler
+}
+
+func (empl *Employee) TakeHolidays() bool  {
+  if empl.PolicyHandler.canTakeHolidays(empl) != true {
+    return false
+  }
+  return true
 }
 \end{minted}
 
+\begin{minted}[frame=single]{go}
+import "fmt"
+import . "employee"
+
+func main() {
+  var newPolicy PolicyHandler = func(empl *Employee) bool {
+      return empl.totalLeaves > empl.leavesTaken
+  }
+  freeze := newPolicy.HolidayFreeze()
+  fmt.Println(freeze)
+
+  employee := Employee{12,20, newPolicy}
+  employee.TakeHolidays()
+}
+\end{minted}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Packages, go get, godep, go mod}
+\subsection{Dependencies, go mod, go get, dep}
 
-The traditional way to get your packages was \verb|go get|. At this moment, we have two approaches \verb|v.go| (new, favored by Google) and \verb|godep| (old, community driven). Let's see how they work.
+The traditional way to get your packages was \verb|go get|. At this moment, we have two approaches \verb|v.go| (new, favored by Google) and \verb|godep| (previous, community driven). Let's see how they work.
 
-\bigskip
+\subsubsection{go mod}
 1. Create new project \emph{workshop-gomod}, with main.go:
 
 \begin{minted}[frame=single]{go}
@@ -1115,28 +1213,32 @@ func main() {
 
 
 \bigskip
-2. Use \emph{gomod} to capture the deps:
+2. Use \emph{gomod} to capture the dependencies:
 
 \begin{minted}{text}
-$ GO111MODULE=on go mod init
-$ GO111MODULE=on go get github.com/gorilla/mux
+$ go mod init
+$ go get github.com/gorilla/mux
 $ ls
 
 go.mod  go.sum  main.go
 
-$ GO111MODULE=on go mod vendor
+$ go mod vendor
 $ ls
 
 $ ls vendor
 
-$ GO111MODULE=on go list -m all
+$ go list -m all
 \end{minted}
 
 Notice: the debate is ongoing whether we should or must not commit \verb|vendor| to your repo. You should, at least, push \verb|go.mod| and \verb|go.sum| to your repo.
 
-\bigskip
+More at \href{https://github.com/golang/go/wiki/Modules}{https://github.com/golang/go/wiki/Modules}.
 
-3. Create new project \emph{workshop-godep}, with main.go:
+\subsubsection{dep}
+
+You might still work with a project with dependencies managed with \verb|dep|:
+
+1. Create new project \emph{workshop-dep}, with main.go:
 
 \begin{minted}[frame=single]{go}
 package main
@@ -1162,7 +1264,7 @@ func main() {
 
 \bigskip
 
-4. Use \emph{godep} to manage your dependencies:
+2. Use \emph{dep} to manage your dependencies:
 
 \begin{minted}{text}
 $ dep
@@ -1171,8 +1273,6 @@ $ ls
 
 vendor  Gopkg.lock  Gopkg.toml  main.go
 \end{minted}
-
-You will have less surprises with \verb|dep| at this moment. \verb|v.go| will be the default soon, consult \href{golang wiki}{https://github.com/golang/go/wiki/Modules}.
 
 \subsection{Linters}
 
@@ -1193,7 +1293,7 @@ $ goimports -w *.go && goimports -w */*.go
 
 There are many linters out there, check, for e.g., \href{https://github.com/golangci/awesome-go-linters}{awesome-go-linter page}.
 
-You should call the linters as part of your CI/CD pipeline:
+You should call the linters as part of your {\small CI}/{\small CD} pipeline:
 
 \begin{markdown}
 - linter
@@ -1235,7 +1335,7 @@ if err == sql.ErrNoRows {
 }
 \end{minted}
 
-Disadvantage? Not too much info, they become a part of your package API.
+Disadvantage? Not too much info, they become a part of your package {\small API}.
 
 \bigskip
 
@@ -1367,6 +1467,8 @@ func main() {
 }
 \end{minted}
 
+Notice: from Golang 1.13.x, we have better support in \verb|errors| library for wrapping \href{https://go.googlesource.com/proposal/+/master/design/29934-error-values.md}{Error Values design proposal}, e.g., \mintinline{go}{errors.Unwrap}, \mintinline{go}{errors.Is} and \mintinline{go}{errors.As} or \mintinline{go}{%w} for \mintinline{go}{fmt.Errorf}.
+
 %%%%%%%%
 \subsubsection{Defer, Panic, and Recover}
 
@@ -1481,6 +1583,8 @@ $ go test .
 \end{minted}
 
 Notice: you can add \verb|-race| to turn on the race detector.
+
+Notice: \verb|go clean -testcache| to clean the cache.
 
 \bigskip
 2. Add, first the test, support for division.
@@ -2080,6 +2184,33 @@ type SafeCounter struct {
 What are drawbacks of this solution?
 
 \smallskip
+
+\subsection{Select}
+
+\begin{minted}[frame=single]{go}
+package main
+
+import (
+    "fmt"
+)
+
+func fibonacci(n int, c chan int) {
+    x, y := 1, 1
+    for i := 0; i < n; i++ {
+        c <- x
+        x, y = y, x+y
+    }
+    close(c)
+}
+
+func main() {
+    c := make(chan int, 10)
+    go fibonacci(cap(c), c)
+    for i := range c {
+        fmt.Println(i)
+    }
+}
+\end{minted}
 
 Implement one counter with mutex and one with channel.
 
