@@ -1,9 +1,10 @@
 tmp/*
-1_two_days_beginner/_minted-introduction/
+*/_minted-introduction/
 */tmp.markdown
 */tmp.tex
 */*.aux
 */*.log
 */*.out
 */*.toc
-2_4H_rest_service/_minted-main/
+*/_minted-main/
+*/tmp/*

@@ -1,0 +1,269 @@
+\documentclass[11pt, letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{kotex}
+\usepackage{polski}
+\usepackage[document]{ragged2e} % keep all left
+\usepackage[english]{babel}
+
+\usepackage{minted} % yaml syntax highlighting
+
+\newenvironment{markdown}%
+    {\VerbatimEnvironment\begin{VerbatimOut}{tmp.markdown}}%
+    {\end{VerbatimOut}%
+        \immediate\write18{pandoc tmp.markdown -t latex -o tmp.tex}%
+        \input{tmp.tex}}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\newcommand*{\email}[1]{\href{mailto:#1}{\nolinkurl{#1}} } 
+
+\title{Kubernetes and Golang\\CloudNative Week\\{ \small \href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0} }  }
+\author{Wojciech Barczynski\\(wbarczynski.pro@gmail.com)}
+\date{}
+
+
+\begin{document}
+\selectlanguage{english}
+
+\begin{titlepage}
+\maketitle
+\end{titlepage}
+
+\tableofcontents
+\pagebreak
+\section{Prerequiments}
+
+\subsection{Audience}
+
+We design the workshop with the following assumptions about the audience:
+
+\begin{itemize}%
+\item Can read and write Golang code, and understand its basics concepts.%
+\item Have been working at lease 1 month with Kubernetes%
+\item Feel good with Command Line Interface.%
+\end{itemize}%
+
+\subsection{Your workstation}
+
+\begin{itemize}%
+\item Linux or {\small OSX} recommended.%
+\item Basic: \begin{itemize}%
+    \item Golang,%
+    \item a configured IDE or editor.%
+    \item Git.
+    \end{itemize}%
+\item Kubernetes.%
+\begin{itemize}%
+    \item minikube,%
+    \item kubectl.%
+\end{itemize}
+\item Docker: \begin{itemize}%
+    \item Installed.%
+    \item Account on hub.docker.com or quay.io.%
+    \end{itemize}
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Check our dev environment}
+
+Let's start a connection:
+
+\begin{minted}{bash}
+$ kubectl config use-context minikube
+$ kubectl get po --all-namespaces
+\end{minted}
+
+You should see:
+
+\begin{minted}{text}
+NAMESPACE     NAME                     READY   STATUS    RESTARTS AGE
+kube-system   coredns-5c98db65d4-kmz2d 1/1     Running   2        3d20h
+kube-system   coredns-5c98db65d4-kwq6g 1/1     Running   2        3d20h
+\end{minted}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{client-go for kubernetes}
+
+1. Create your project
+
+\begin{minted}{bash}
+$ mkdir my-kube
+$ cd my-kube
+$ go mod init my-kube
+\end{minted}
+
+2. Le's get the library (\href{https://github.com/kubernetes/client-go}{https://github.com/kubernetes/client-go}):
+
+\begin{minted}{bash}
+$ go get k8s.io/client-go@kubernetes-1.15.3
+\end{minted}
+
+3. Write a program (based on \href{https://github.com/kubernetes/client-go/blob/master/examples/out-of-cluster-client-configuration/main.go}{example.go}):
+
+%[frame=single]
+\inputminted{go}{src/example_1.go}
+
+Please change the program to display \mintinline{go}{Endpoints} and, later, to get all \mintinline{go}{Deployments}.
+
+\bigskip
+4. Please create in a golang program a service and ingress based on \href{https://github.com/kubernetes/client-go/blob/master/examples/create-update-delete-deployment/main.go}{this example}.
+
+\bigskip
+5. Let's see how to use \href{https://github.com/kubernetes/client-go/blob/master/testing/fake.go}{fake-client} for testing your program. Follow the instructor.
+
+% testing: https://github.com/kubernetes/client-go/blob/master/examples/fake-client/main_test.go
+
+% package main
+
+% import (
+% 	"testing"
+
+% 	"k8s.io/client-go/kubernetes/fake"
+% )
+
+% // app
+% type k8s struct {
+%     clientset kubernetes.Interface
+% }
+
+% func (o *k8s) getVersion() (string, error) {
+%     version, err := o.clientset.Discovery().ServerVersion()
+%     if err != nil {
+%         return "", err
+%     }
+%     return fmt.Sprintf("%s", version), nil
+% }
+
+% // -
+
+% func newTestSimpleK8s() *k8s {
+% 	client := k8s{}
+% 	client.clientset = fake.NewSimpleClientset()
+% 	return &client
+% }
+
+% func TestGetVersionDefault(t *testing.T) {
+% 	k8s := newTestSimpleK8s()
+% 	v, err := k8s.getVersion()
+% 	if err != nil {
+% 		t.Fatal("getVersion should not raise an error")
+% 	}
+% 	expected := "v0.0.0-master+$Format:%h$"
+% 	if v != expected {
+% 		t.Fatal("getVersion should return " + expected)
+% 	}
+% } https://itnext.io/testing-kubernetes-go-applications-f1f87502b6ef
+
+%
+% nice examples: https://medium.com/programming-kubernetes/building-stuff-with-the-kubernetes-api-part-4-using-go-b1d0e3c1c899
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{operator-{\small SDK}}
+
+1. Install operator {\small SDK} following instructions from \href{https://github.com/operator-framework/operator-sdk}{https://github.com/operator-framework/operator-sdk}. You can also download the binary from \href{https://github.com/operator-framework/operator-sdk/releases}{https://github.com/operator-framework/operator-sdk/releases}. 
+\bigskip
+
+2. Add the operator-sdk to your {\small PATH}.
+
+\bigskip
+3. Create a sample program, following quick start: \href{https://github.com/operator-framework/operator-sdk}{https://github.com/operator-framework/operator-sdk}. You might need to create an account on hub.docker.com or quay.io.
+
+Notice: you might need to make your docker image public.
+
+\bigskip
+4. Let's extend change the command to:
+
+\begin{minted}{go}
+Spec: corev1.PodSpec{
+    Containers: []corev1.Container{
+        {
+            Name:    "busybox2",
+            Image:   "busybox",
+            Command: []string{"/bin/sh","-c", "echo 'hello world' && sleep 3600"},
+        },
+    },
+}
+\end{minted}
+
+\bigskip
+5. We would like now our operator to ensure the command is as specified. Otherwise it should recreate the BusyBox. Let's add \verb|appservice_types.go|:
+
+\begin{minted}{go}
+type AppServiceSpec struct {
+	BoxCommand []string `json:"command,omitempty"`
+}
+\end{minted}
+
+and regenerate:
+
+\begin{minted}{bash}
+$ operator-sdk generate k8
+$ operator-sdk generate openapi
+\end{minted}
+
+Change {\small CRD}:
+
+\begin{minted}{bash}
+$ cat deploy/crds/app_v1alpha1_appservice_cr.yaml
+\end{minted}
+
+
+Let's spcify it:
+
+\begin{minted}{bash}
+spec:
+  command: [ "/bin/sh","-c", "echo 'hello world x2' && sleep 1000"]
+  # Add fields here
+  size: 3
+\end{minted}
+
+6. Check the {\small CR}:
+
+\begin{minted}{bash}
+$ kubectl get appservice
+\end{minted}
+
+% memcache tutorial looks good: https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{kubebuilder}
+
+Kubebuilder (\href{https://github.com/kubernetes-sigs/kubebuilder}{https://github.com/kubernetes-sigs/kubebuilder}) is a framework for building Kubernetes {\small API}s.
+
+% \bigskip
+% 1. Install following \href{https://book.kubebuilder.io/quick-start.html#installation}{kubebuilder quick start}
+
+\section{Observability}
+
+Follow the instructor.
+
+\begin{markdown}
+- Monitoring - prometheus
+- Logging - framework overview
+\end{markdown}
+
+See: rest service instruction, \href{https://github.com/wojciech12/talk_observability_logging}{github.com/wojciech12/talk\_observability\_logging}, and \href{https://github.com/wojciech12/talk_monitoring_with_prometheus}{github.com/wojciech12/talk\_monitoring\_with\_prometheus}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Golang app on kubernetes}
+
+Which signals to handle, how to communicate with kubernetes?
+
+See \href{https://github.com/wojciech12/talk_zero_downtime_deployment_with_kubernetes/tree/master/demo}{github.com/wojciech12/talk\_zero\_downtime\_deployment\_with\_kubernetes}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{References}
+
+\begin{markdown}
+- https://github.com/golang/go/wiki/CodeReviewComments
+- https://golang.com/doc/effective_go.html
+- http://devs.cloudimmunity.com/gotchas-and-common-mistakes-in-go-golang
+\end{markdown}
+
+\end{document}
