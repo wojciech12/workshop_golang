@@ -5,7 +5,7 @@
 3. Running on CN/Kubernetes
 4. Working with Kubernetes golang lib, operators, etc: [manual 4](4_kubernetes/main.pdf)
 
-## Topics to cover
+## Topics
 
 Formats: 2 days, 1 day, 4h
 
@@ -46,11 +46,6 @@ Formats: 2 days, 1 day, 4h
 - db access
 - logging
 
-### Advanced++
-
-- ?
-- ?
-
 ## History
 
 1. Golang Warsaw Meetup Workshop
@@ -61,7 +56,6 @@ Formats: 2 days, 1 day, 4h
 
 Looking for a Kubernetes, CloudNative, Golang, or Machine Learning training, reach me at
 wbarczynski.pro@gmail.com or [LinkedIN](https://www.linkedin.com/in/wojciechbarczynski/).
-
 
 ## Related
 
