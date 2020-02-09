@@ -54,3 +54,8 @@ Formats: 2 days, 1 day, 4h
 ## Related
 
 - https://quii.gitbook.io/learn-go-with-tests/go-fundamentals/hello-world
+
+## Contact 
+
+| Looking for a Kubernetes, CloudNative, Golang, or Machine Learning training, reach me at
+| wbarczynski.pro@gmail.com or `LinkedIN <https://www.linkedin.com/in/wojciechbarczynski/>`_.
