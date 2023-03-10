@@ -1,18 +1,20 @@
 # Golang Programing Workshop
 
+Manuals:
+
 1. Two days from Basics to Mid: [manual 1](1_two_days_beginner/introduction.pdf)
 2. One days REST servie and database access: [manual 2](2_one_day_rest_service/main.pdf)
 3. Running on CN/Kubernetes
 4. Working with Kubernetes golang lib, operators, etc: [manual 4](4_kubernetes/main.pdf)
 
-## Topics
+## Topics covered
 
-Formats: 2 days, 1 day, 4h
+Formats: 5 days, 2 days, 1 day, or 4h
 
-### Basics
+### Module 1
 
 - packaging
-- go get, go build, go install
+- go mod, go get, go build, go install
 - fmt, imports, linter
 - vars, consts
 - functions
@@ -24,7 +26,7 @@ Formats: 2 days, 1 day, 4h
 - maps
 - methods
 
-### Mid-level
+### Module 2
 
 - interfaces
 - goroutines
@@ -33,7 +35,15 @@ Formats: 2 days, 1 day, 4h
 - (file) io
 - unit tests
 
-### Advanced (not really)
+## Module 3
+
+- Your first web app
+- Working with JSON
+- Calling external services
+- Working with files
+- db access
+
+### Module 4 - Advanced (not really)
 
 - stdlib
 - ide: AC, def/usage, debug
@@ -43,8 +53,13 @@ Formats: 2 days, 1 day, 4h
 - benchmarking
 - calling remote apis
 - parsing cli args
-- db access
 - logging
+
+### Module 5
+
+- You will build your own app based on what you learnt during the workshop
+- Golang and GraphQL
+- Building apps in Golang for CloudNative/Kubernetes - observability and operators
 
 ## History
 
