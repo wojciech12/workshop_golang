@@ -2,14 +2,14 @@
 
 Manuals:
 
-1. Two days from Basics to Mid: [manual 1](1_two_days_beginner/introduction.pdf)
-2. One days REST servie and database access: [manual 2](2_one_day_rest_service/main.pdf)
-3. Running on CN/Kubernetes
-4. Working with Kubernetes golang lib, operators, etc: [manual 4](4_kubernetes/main.pdf)
+1. Two days from Basics to Mid: [manual 1](1_two_days_beginner/introduction.pdf),
+2. One days REST servie and database access: [manual 2](2_one_day_rest_service/main.pdf),
+3. Running on CN/Kubernetes,
+4. Working with Kubernetes golang lib, operators, etc: [manual 4](4_kubernetes/main.pdf).
 
 ## Topics covered
 
-Formats: 5 days, 2 days, 1 day, or 4h
+Formats: 5 days, 2 days, 1 day, or 4h.
 
 ### Module 1
 
