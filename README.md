@@ -1,4 +1,6 @@
-# Golang Programing Workshop
+# Golang Programming Workshop
+
+**Deprecated**, go to https://github.com/wojciech11/workshop_golang
 
 Manuals:
 
